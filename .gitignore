@@ -1,0 +1,16 @@
+*.egg-info
+.settings
+venv
+.cache
+.eggs
+htmlcov
+.coverage
+*.pyc
+.DS_Store
+*.pydevproject
+.project
+.metadata
+temp
+local.yaml
+dist
+build
