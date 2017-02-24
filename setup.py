@@ -37,5 +37,5 @@ setup(
       cmdclass={'test': PyTest},
       setup_requires=[],
       install_requires=['numpy', 'pandas', 'pymongo'],
-      tests_require=['pytest', 'mock', 'pytest-cov', 'mock', 'lettuce']
+      tests_require=['pytest', 'mock', 'pytest-cov', 'mock', 'lettuce', 'mongomock']
       )

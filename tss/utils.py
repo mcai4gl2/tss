@@ -1,7 +1,9 @@
 from pymongo import MongoClient
+from bson.objectid import ObjectId
 
 from config import Config as cfg
 from models import Series, Slice
+
 
 def get_mongo_db(config=None):
     if config is None:
@@ -10,9 +12,21 @@ def get_mongo_db(config=None):
     db = client[cfg.MONGO_DB_NAME]
     return db
 
-def get_series(db=None, config=None):
+
+def get_series(db=None, config=None, id=None):
     if db is None:
         db = get_mongo_db(config)
+    if id is not None:
+        if ObjectId.is_valid(id):
+            cursor = db.series.find({"_id": ObjectId(id)})
+        else:
+            return []
+    else:
+        cursor = db.series.find({})
+    series = [Series(db.series, series['_id'], series['name'], series['frequency'], series['columns'], series['slices']) 
+              for series in cursor]
+    return series
+
 
 def add_series(name, frequency, columns=[], db=None, config=None):
     if db is None:

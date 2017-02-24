@@ -9,9 +9,14 @@ class Series(object):
         
     def delete(self):
         self.collection.delete_one({"_id": self.id})
+        
+    def __repr__(self):
+        return 'Series[id={}, name={}, columns={}, frequency={}]'.format(self.id, self.name, self.columns, self.frequency)
 
 class Slice(object):
-    def __init__(self, start, num_of_samples):
+    def __init__(self, series, objectId, start, num_of_samples):
+        self.series = series
+        self.id = objectId
         self.start = start
         self.num_of_samples = num_of_samples
-        self.values = []
+        
