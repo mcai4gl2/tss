@@ -8,3 +8,8 @@ def db():
 @pytest.fixture
 def series(db):
     return db.series
+
+
+@pytest.fixture
+def data(db):
+    return db.data

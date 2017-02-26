@@ -23,7 +23,13 @@ def get_series(db=None, config=None, id=None):
             return []
     else:
         cursor = db.series.find({})
-    series = [Series(db.series, series['_id'], series['name'], series['frequency'], series['columns'], series['slices']) 
+    series = [Series(db, 
+                     db.series, 
+                     series['_id'], 
+                     series['name'], 
+                     series['frequency'], 
+                     series['columns'], 
+                     _get_slices(db, config, series['slices'])) 
               for series in cursor]
     return series
 
@@ -34,4 +40,20 @@ def add_series(name, frequency, columns=[], db=None, config=None):
     series = db.series
     new_series = {"name": name, "frequency": frequency, "columns": columns, "slices": []}
     result = series.insert_one(new_series)
-    return Series(series, result.inserted_id, name, frequency)
+    return Series(db, series, result.inserted_id, name, frequency)
+
+
+def _get_slices(db=None, config=None, slices=None):
+    if slices is None:
+        return []
+    if db is None:
+        db = get_mongo_db(config)
+    return [Slice(db, slice['start'], slice['num_of_samples'], None, slice.get('id', None)) for slice in slices]
+
+
+def _clear_all(db=None, config=None):
+    if db is None:
+        db = get_mongo_db(config)
+    result1 = db.series.delete_many({})
+    result2 = db.data.delete_many({})
+    return {'series': result1.deleted_count, 'data': result2.deleted_count}
