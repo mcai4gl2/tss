@@ -1,5 +1,9 @@
 import pytest
 import mongomock
+from datetime import datetime
+
+import tss.utils as utils
+
 
 @pytest.fixture
 def db():
@@ -13,3 +17,14 @@ def series(db):
 @pytest.fixture
 def data(db):
     return db.data
+
+
+@pytest.fixture
+def a_series(db):
+    return utils.add_series('test', 100, [], db)
+
+
+@pytest.fixture
+def a_slice(a_series):
+    start = datetime(2017, 3, 4)
+    return a_series.add_slice(start) 

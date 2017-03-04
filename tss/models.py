@@ -6,14 +6,15 @@ class Series(object):
         self.name = name
         self.columns = columns
         self.frequency = frequency
-        self.slices = slices
+        self.slices = {slice.id: slice for slice in slices}
         for slice in slices:
             slice.series = self
         
     def delete(self):
-        for slice in self.slices:
+        for slice in self.slices.values():
             slice.delete()
         self.collection.delete_one({"_id": self.id})
+        self.id = None
 
     def add_slice(self, start, num_of_samples = 0):
         result = self.db.data.insert_one({'data': []})
@@ -21,7 +22,7 @@ class Series(object):
         self.collection.update({'_id': self.id}, 
                                {"$push": {"slices": {'start': start, 'num_of_samples': num_of_samples, 'id': slice.id}}},
                                upsert=False)
-        self.slices.append(slice)
+        self.slices[slice.id] = slice
         return slice
     
     def __repr__(self):
@@ -47,7 +48,8 @@ class Slice(object):
     
     def delete(self):
         self.collection.delete_one({"_id": self.id})
-        self.series.slices.remove(self)
+        del self.series.slices[self.id]
+        self.id = None
         
     def __repr__(self):
         return 'Slice[id={}, start={}, number_of_samples={}]'.format(self.id, self.start, self.num_of_samples)

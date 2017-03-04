@@ -10,7 +10,7 @@ def test_add_series(db, series):
     assert result.name == 'test'
     assert result.frequency == 100
     assert result.columns == []
-    assert result.slices == []
+    assert result.slices == {}
     
 
 def test_get_series_when_empty(db):
