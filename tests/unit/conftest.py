@@ -21,7 +21,7 @@ def data(db):
 
 @pytest.fixture
 def a_series(db):
-    return utils.add_series('test', 100, [], db)
+    return utils.add_series('test', '1d', ['col1', 'col2'], db)
 
 
 @pytest.fixture

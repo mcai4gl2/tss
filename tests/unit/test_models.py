@@ -1,5 +1,8 @@
 from datetime import datetime
 
+import pandas as pd
+from pandas.util.testing import assert_frame_equal
+
 
 def test_delete_series_without_slices(a_series, series, data):
     assert series.find({'_id': a_series.id}, {'_id': 1}).limit(1).count() == 1
@@ -69,3 +72,47 @@ def test_add_data_into_slices_which_already_has_data(a_slice, data):
     assert stored_data.count() == 1
     stored_data = stored_data[0] 
     assert stored_data['data'] == [input[0], input[0]]
+    
+    
+def test_get_data_from_slice(a_slice, data):
+    output = a_slice.get()
+    assert output == []
+    input = [['abc', 1, 2, 3]]
+    a_slice.add(input)
+    output = a_slice.get()
+    assert input == output
+    
+
+def test_slice_end_property(a_series, a_slice):
+    a_series.frequency = '1d'
+    a_slice.start = datetime(2017, 3, 4)
+    assert a_slice.start == a_slice.end
+    a_slice.add([1])
+    assert a_slice.end == datetime(2017, 3, 5)
+    assert type(a_slice.end) == datetime
+    
+
+def test_get_data_from_series(a_series, a_slice):
+    a_series.frequency = '1d'
+    a_slice.start = datetime(2017, 3, 4)
+    a_slice.add([[1, 2], [3, 4]])
+    results = a_series.get()
+    expected = pd.DataFrame({'col1': [1., 3.], 'col2': [2., 4.], 'time': [datetime(2017, 3, 4), datetime(2017, 3, 5)]})
+    expected.set_index('time', inplace=True)
+    assert_frame_equal(expected, results)
+    
+
+def test_get_data_from_slice_with_filters(a_series, a_slice, data):
+    a_series.frequency = '1d'
+    a_slice.start = datetime(2017, 3, 4)
+    a_slice.add([[1], [2], [3], [4], [5]])
+    output = a_slice.get()
+    assert output == [[1], [2], [3], [4], [5]]
+    output = a_slice.get(data_from=datetime(2017, 3, 4), data_to=datetime(2017, 3, 4))
+    assert output == [[1]]
+    output = a_slice.get(data_from=datetime(2017, 3, 3), data_to=datetime(2017, 3, 3))
+    assert output == []
+    output = a_slice.get(data_from=datetime(2017, 3, 5))
+    assert output == [[2], [3], [4], [5]]
+    output = a_slice.get(data_from=datetime(2017, 3, 11))
+    assert output == []

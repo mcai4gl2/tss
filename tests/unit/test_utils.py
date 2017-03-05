@@ -1,16 +1,23 @@
 from datetime import datetime
+import pytest
 
 import tss.utils as utils
 
 
 def test_add_series(db, series):
-    result = utils.add_series('test', 100, [], db)
+    result = utils.add_series('test', '1d', ['col1'], db)
     assert result.id is not None
     assert result.collection == series
     assert result.name == 'test'
-    assert result.frequency == 100
-    assert result.columns == []
+    assert result.frequency == '1d'
+    assert result.columns == ['col1']
     assert result.slices == {}
+    
+    
+def test_add_series_errors_when_frequency_is_not_valid(db, series):
+    with pytest.raises(ValueError) as error:
+        utils.add_series('test', 'XX', [], db)
+    assert error.value.message == 'frequency is not valid'
     
 
 def test_get_series_when_empty(db):
@@ -19,7 +26,7 @@ def test_get_series_when_empty(db):
     
 
 def test_get_series_by_id(db, series):
-    s1 = utils.add_series('test', 100, [], db)
+    s1 = utils.add_series('test', '1d', [], db)
     results = utils.get_series(db, id=s1.id)
     assert len(results) == 1
     result = results[0]

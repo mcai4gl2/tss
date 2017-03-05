@@ -1,8 +1,9 @@
+import numpy as np
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 
 from config import Config as cfg
-from models import Series, Slice
+from models import Series, Slice, FREQUENCIES
 
 
 def get_mongo_db(config=None):
@@ -37,10 +38,12 @@ def get_series(db=None, config=None, id=None):
 def add_series(name, frequency, columns=[], db=None, config=None):
     if db is None:
         db = get_mongo_db(config)
+    if frequency not in FREQUENCIES.keys():
+        raise ValueError('frequency is not valid')
     series = db.series
     new_series = {"name": name, "frequency": frequency, "columns": columns, "slices": []}
     result = series.insert_one(new_series)
-    return Series(db, series, result.inserted_id, name, frequency)
+    return Series(db, series, result.inserted_id, name, frequency, columns)
 
 
 def _get_slices(db=None, config=None, slices=None):

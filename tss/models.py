@@ -1,3 +1,14 @@
+from datetime import datetime
+
+import numpy as np
+import pandas as pd
+
+
+FREQUENCIES = {'1d': np.timedelta64(1, 'D'),
+               '1m': np.timedelta64(1, 'm'),
+               '1s': np.timedelta64(1, 's')}
+
+
 class Series(object):
     def __init__(self, db, collection, objectId, name, frequency, columns=[], slices=[]):
         self.db = db
@@ -25,6 +36,30 @@ class Series(object):
         self.slices[slice.id] = slice
         return slice
     
+    def find_slice_starts_at(self, datetime):
+        return filter(self.slices, lambda s: s.start == datetime)
+    
+    def get(self, data_from=None, data_to=None):
+        results = pd.DataFrame(columns=self.columns + ['time'])
+        frequency = FREQUENCIES[self.frequency]
+        for slice in self.slices.values():
+            start = slice.start
+            end = slice.end
+            if data_from is not None and data_from > start:
+                start = data_from
+            if data_to is not None and data_to < end:
+                end = data_to
+            data = slice.get(start, end)
+            if data == []:
+                continue
+            start = np.datetime64(start)
+            timestamps = [start + i * frequency for i in xrange(0, slice.num_of_samples)]
+            slice_df = pd.DataFrame(data, columns=self.columns)
+            slice_df['time'] = pd.Series(timestamps, index=slice_df.index)
+            results = results.append(slice_df)
+        results.set_index('time', inplace=True)
+        return results
+    
     def __repr__(self):
         return 'Series[id={}, name={}, columns={}, frequency={}]'.format(self.id, self.name, self.columns, self.frequency)
     
@@ -45,7 +80,31 @@ class Slice(object):
                                        'slices.id': self.id},
                                       {'$inc': {'slices.$.num_of_samples': len(data)}})
         self.num_of_samples += len(data)
+        
+    def get(self, data_from=None, data_to=None):
+        if self.num_of_samples == 0:
+            return []
+        frequency = FREQUENCIES[self.series.frequency]
+        data = self.collection.find({'_id': self.id}, {'data': 1}).limit(1)[0]['data']
+        start = np.datetime64(self.start)
+        timestamps = [start + i * frequency for i in xrange(0, self.num_of_samples)]
+        results = zip(timestamps, data)
+        if data_from is not None:
+            data_from = np.datetime64(data_from)
+        else:
+            data_from = start
+        if data_to is not None:
+            data_to = np.datetime64(data_to)
+        else:
+            data_to = timestamps[-1]
+        return [r[1] for r in results if r[0] >= data_from and r[0] <= data_to]
     
+    @property
+    def end(self):
+        frequency = FREQUENCIES[self.series.frequency]
+        start = np.datetime64(self.start)
+        return (start + self.num_of_samples * frequency).astype(datetime)
+        
     def delete(self):
         self.collection.delete_one({"_id": self.id})
         del self.series.slices[self.id]
