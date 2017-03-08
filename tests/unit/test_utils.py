@@ -1,7 +1,13 @@
+from StringIO import StringIO
 from datetime import datetime
+
 import pytest
+import pandas as pd
+import numpy as np
+from pandas.util.testing import assert_frame_equal
 
 import tss.utils as utils
+from tss.models import Slice, SparseSlice, Series
 
 
 def test_add_series(db, series):
@@ -52,8 +58,9 @@ def test_get_slices(db):
     assert utils._get_slices(db=db, slices=slices) == []
     assert utils._get_slices(db=db) == []   
     t = datetime.now()
-    slices = [{'start': t, 'num_of_samples':100}, 
-              {'start': t, 'num_of_samples':1, 'id': 123}]
+    slices = [{'start': t, 'num_of_samples':100, 'is_sparse': False}, 
+              {'start': t, 'num_of_samples':1, 'id': 123, 
+               'is_sparse': True}]
     results = utils._get_slices(db=db, slices=slices)
     assert len(results) == 2
     result = results[0]
@@ -61,11 +68,15 @@ def test_get_slices(db):
     assert result.start == t
     assert result.num_of_samples == 100
     assert result.id is None
+    assert type(result) == Slice
+    assert result.is_sparse == False
     result = results[1]
     assert result.db == db
     assert result.start == t
     assert result.num_of_samples == 1
     assert result.id == 123
+    assert type(result) == SparseSlice
+    assert result.is_sparse == True
 
 
 def test_clear_all_when_empty(db, series, data):
@@ -88,3 +99,28 @@ def test_clear_all_when_there_are_some_data(db, series, data):
     assert 'data' in results
     assert results['series'] == 3
     assert results['data'] == 4
+    
+    
+def test_create_with_sparse_slices_from_df(db, series, data):
+    input_data=StringIO("""col1,col2,col3
+1,2,3
+4,5,6
+7,8,9
+""")
+    df = pd.read_csv(input_data, sep=",")
+    df['time'] = pd.Series([np.datetime64(datetime(2017, 3, 8)),
+                            np.datetime64(datetime(2017, 3, 9)),
+                            np.datetime64(datetime(2017, 3, 10))])
+    df.set_index(['time'], inplace=True)
+    result = utils.create_with_sparse_slices_from_df(df, 'test1', '1d', 1, db)
+    assert result is not None
+    assert isinstance(result, Series)
+    assert len(result.slices) == 3
+    assert type(result) == Series
+    assert series.find({}).count() == 1
+    assert data.find({}).count() == 3
+    series_docs = [s for s in series.find({})]
+    data_docs = [d for d in data.find({})]
+    df_new = result.get()
+    assert_frame_equal(df, df_new, check_dtype=False)
+    

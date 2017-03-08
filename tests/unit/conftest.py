@@ -28,3 +28,10 @@ def a_series(db):
 def a_slice(a_series):
     start = datetime(2017, 3, 4)
     return a_series.add_slice(start) 
+
+
+@pytest.fixture
+def a_sparse_slice(a_series):
+    start = datetime(2017, 3, 8)
+    return a_series.add_slice(start, is_sparse=True)
+
