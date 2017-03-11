@@ -11,8 +11,8 @@ from models import Series, Slice, SparseSlice, FREQUENCIES
 def get_mongo_db(config=None):
     if config is None:
         config = cfg
-    client = MongoClient(cfg.MONGO_SERVER, cfg.MONGO_PORT)
-    db = client[cfg.MONGO_DB_NAME]
+    client = MongoClient(config.MONGO_SERVER, config.MONGO_PORT)
+    db = client[config.MONGO_DB_NAME]
     return db
 
 

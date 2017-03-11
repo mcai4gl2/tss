@@ -9,6 +9,7 @@ import tss.utils as utils
 def db():
     return mongomock.MongoClient().db
 
+
 @pytest.fixture
 def series(db):
     return db.series

@@ -179,4 +179,5 @@ class SparseSlice(Slice):
                                              {'$unwind': '$data'},
                                              {'$sort': {'data.timestamp': -1}},
                                              {'$limit': 1}])
-        return [r['data']['timestamp'] for r in results][0]
+        return [r['data']['timestamp'] for r in results if r['_id'] == self.id][0]
+    
