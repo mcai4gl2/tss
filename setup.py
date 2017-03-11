@@ -31,11 +31,21 @@ class PyTest(TestCommand):
         sys.exit(errno)
 
 setup(
-      name='tss',
+      name='mtss',
       version='0.0.1',
+      author="Geng Li",
+      author_email="ligeng0420@gmail.com",
+      license="MIT",
+      keywords=['mongo'],
+      url="https://github.com/mcai4gl2/tss",
       packages=find_packages(),
       cmdclass={'test': PyTest},
       setup_requires=[],
       install_requires=['numpy', 'pandas', 'pymongo'],
-      tests_require=['pytest', 'mock', 'pytest-cov', 'mock', 'lettuce', 'mongomock']
+      tests_require=['pytest', 'mock', 'pytest-cov', 'mock', 'lettuce', 'mongomock'],
+      classifiers=[
+        "Programming Language :: Python :: 2.7",
+        "Topic :: Database",
+        "Topic :: Software Development :: Libraries",
+    ],
       )
