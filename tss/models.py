@@ -3,10 +3,7 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 
-
-FREQUENCIES = {'1d': np.timedelta64(1, 'D'),
-               '1m': np.timedelta64(1, 'm'),
-               '1s': np.timedelta64(1, 's')}
+from . import FREQUENCIES
 
 
 class Series(object):
@@ -180,4 +177,3 @@ class SparseSlice(Slice):
                                              {'$sort': {'data.timestamp': -1}},
                                              {'$limit': 1}])
         return [r['data']['timestamp'] for r in results if r['_id'] == self.id][0]
-    

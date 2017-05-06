@@ -41,7 +41,7 @@ setup(
       packages=find_packages(),
       cmdclass={'test': PyTest},
       setup_requires=[],
-      install_requires=['numpy', 'pandas', 'pymongo'],
+      install_requires=['numpy', 'pandas', 'pymongo', 'boto3'],
       tests_require=['pytest', 'mock', 'pytest-cov', 'mock', 'lettuce', 'mongomock'],
       classifiers=[
         "Programming Language :: Python :: 2.7",
