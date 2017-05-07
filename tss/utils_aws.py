@@ -1,6 +1,9 @@
+from datetime import datetime
+import numpy as np
 import boto3
+from boto3.dynamodb.conditions import Key
 
-from models_aws import SERIES_SCHEMA, DATA_SCHEMA, Series, SpareSlice
+from models_aws import SERIES_SCHEMA, DATA_SCHEMA, Series, SparseSlice, str_to_time
 
 from . import FREQUENCIES
 
@@ -29,7 +32,7 @@ def get_series(scope, name, db=None, config=None):
     return Series(db, table, scope, name, 
                   item['frequency'], 
                   item['columns'], 
-                  _get_slices(db, config, Series._series_full_name(scope, name), item['slices'])) 
+                  _get_slices(Series._series_full_name(scope, name), db, config, item['slices']))
 
 
 def add_series(name, frequency, columns=[], db=None, config=None, scope='/'):
@@ -43,13 +46,24 @@ def add_series(name, frequency, columns=[], db=None, config=None, scope='/'):
     return Series(db, table, scope, name, frequency, columns)
 
 
-def _get_slices(series_full_name, db=None, config=None, slices=None):
+def _get_slices(series_full_name=None, db=None, config=None, slices=None):
     if slices is None:
         return []
     if db is None:
         db = get_dynamodb(config)
     table = db.Table(DATA_SCHEMA['TableName'])
-    return [SpareSlice(db, table, slice.start, None, slice.slice_id) for slice in slices]
+    count_dict = {}
+    if series_full_name is not None:
+        results = table.query(
+            ProjectionExpression="slice_id, num_of_samples",
+            KeyConditionExpression=Key('series_full_name').eq(series_full_name)
+        )
+        items = results['Items']
+        for item in items:
+            count_dict[item['slice_id']] = int(item['num_of_samples'])
+    return [SparseSlice(db, table, str_to_time(slice['start']),
+                        count_dict.get(slice.get('id', None), 0),
+                        None, slice.get('id', None)) for slice in slices]
 
 
 def create_with_sparse_slices_from_df(df, scope, name, frequency, num_of_elements_per_slice, db=None, config=None):

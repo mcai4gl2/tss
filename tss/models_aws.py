@@ -1,4 +1,6 @@
-import boto3
+from datetime import datetime
+
+import numpy as np
 
 from models import Series as MongoSeries
 from models import Slice as MongoSlice
@@ -80,8 +82,7 @@ class Series(MongoSeries):
         else:
             return scope + '/' + name
 
-    @staticmethod
-    def _generate_slice_id():
+    def _generate_slice_id(self):
         return str(len(self.slices) + 1)
 
     def delete(self):
@@ -93,15 +94,16 @@ class Series(MongoSeries):
 
     def add_slice(self, start):
         new_slice_data = {'series_full_name': self.full_name,
-                          'slice_id': Series._generate_slice_id(),
-                          'data': []}
-        table = db.Table(DATA_SCHEMA['TableName'])
+                          'slice_id': self._generate_slice_id(),
+                          'num_of_samples': 0,
+                          'slice_data': []}
+        table = self.db.Table(DATA_SCHEMA['TableName'])
         table.put_item(Item=new_slice_data)
-        slice = SpareSlice(self.db, table, start, self, new_slice['slice_id'])
-        new_slice = {'start': start, 
+        slice = SparseSlice(self.db, table, start, new_slice_data['num_of_samples'], self, new_slice_data['slice_id'])
+        new_slice = {'start': time_to_str(start),
                      'id': slice.id, 
                      'is_sparse': slice.is_sparse}
-        self.collection.update_item(Key={'scope': scope, 'name': name},
+        self.collection.update_item(Key={'scope': self.scope, 'name': self.name},
                                     UpdateExpression="SET slices = list_append(slices, :i)",
                                     ExpressionAttributeValues={':i': [new_slice]},
                                     ReturnValues="UPDATED_NEW")
@@ -109,13 +111,14 @@ class Series(MongoSeries):
         return slice
 
 
-class SpareSlice(MongoSlice):
-    def __init__(self, db, collection, start, series=None, id=None):
+class SparseSlice(MongoSlice):
+    def __init__(self, db, collection, start, num_of_samples, series=None, id=None):
         self.db = db
         self.collection = collection
         self.series = series
         self.id = id
         self.start = start
+        self.num_of_samples = num_of_samples
         self.is_sparse = True
 
     def add(self, data):
@@ -125,18 +128,31 @@ class SpareSlice(MongoSlice):
             return
         if not (isinstance(data.keys()[0], datetime) or isinstance(data.keys()[0], np.datetime64)):
             raise ValueError('input data key is not of type datetime')
-        data = [{'timestamp': SparseSlice._format_timestamp(d), 
-                 'data': self._transform_data(data[d])} for d in data.keys()]
+        data = [{'timestamp': time_to_str(d),
+                 'slice_data': self._transform_data(data[d])} for d in data.keys()]
         self.collection.update_item(Key={'series_full_name': self.series.full_name, 'slice_id': self.id},
-                                    UpdateExpression="SET data = list_append(data, :i)",
+                                    UpdateExpression="SET slice_data = list_append(slice_data, :i)",
                                     ExpressionAttributeValues={':i': data},
                                     ReturnValues="UPDATED_NEW")
-        # Unlike mongo version, we don't update slice count on series document as dynamodb api doesn't allow it
+        self.collection.update_item(Key={'series_full_name': self.series.full_name, 'slice_id': self.id},
+                                    UpdateExpression="SET num_of_samples = num_of_samples + :num",
+                                    ExpressionAttributeValues={':num': len(data)},
+                                    ReturnValues="UPDATED_NEW")
+        self.num_of_samples += len(data)
 
- 
     def get(self, data_from=None, data_to=None):
-        data = self.collection.get_item(Key={'series_full_name': self.series.full_name, 'slice_id': self.id})['Item']['data']
-        results = [[np.datetime64(d['timestamp'])] + d['data'] for d in data if 
-                   (data_from is None or d['timestamp'] >= data_from) and 
-                   (data_to is None or d['timestamp'] <= data_to)]
+        data = self.collection.get_item(Key={'series_full_name': self.series.full_name, 'slice_id': self.id})['Item']['slice_data']
+        results = [[str_to_time(d['timestamp'])] + d['slice_data'] for d in data if
+                   (data_from is None or str_to_time(d['timestamp']) >= data_from) and
+                   (data_to is None or str_to_time(d['timestamp']) <= data_to)]
         return results
+
+
+def time_to_str(time):
+    if isinstance(time, np.datetime64):
+        time = time.astype(datetime)
+    return time.isoformat()
+
+
+def str_to_time(str):
+    return np.datetime64(str)
