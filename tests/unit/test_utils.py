@@ -20,7 +20,7 @@ def test_add_series(db, series):
     assert result.slices == {}
     
     
-def test_add_series_errors_when_frequency_is_not_valid(db, series):
+def test_add_series_errors_when_frequency_is_not_valid(db):
     with pytest.raises(ValueError) as error:
         utils.add_series('test', 'XX', [], db)
     assert error.value.message == 'frequency is not valid'
@@ -123,4 +123,3 @@ def test_create_with_sparse_slices_from_df(db, series, data):
     data_docs = [d for d in data.find({})]
     df_new = result.get()
     assert_frame_equal(df, df_new, check_dtype=False)
-    
