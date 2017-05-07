@@ -32,11 +32,11 @@ class PyTest(TestCommand):
 
 setup(
       name='mtss',
-      version='0.0.1',
+      version='0.0.2',
       author="Geng Li",
       author_email="ligeng0420@gmail.com",
       license="MIT",
-      keywords=['mongo'],
+      keywords=['mongodb', 'dynamodb'],
       url="https://github.com/mcai4gl2/tss",
       packages=find_packages(),
       cmdclass={'test': PyTest},
@@ -44,8 +44,8 @@ setup(
       install_requires=['numpy', 'pandas', 'pymongo', 'boto3'],
       tests_require=['pytest', 'mock', 'pytest-cov', 'mock', 'lettuce', 'mongomock'],
       classifiers=[
-        "Programming Language :: Python :: 2.7",
-        "Topic :: Database",
-        "Topic :: Software Development :: Libraries",
-    ],
-      )
+            "Programming Language :: Python :: 2.7",
+            "Topic :: Database",
+            "Topic :: Software Development :: Libraries",
+      ],
+)

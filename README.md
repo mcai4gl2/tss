@@ -4,6 +4,8 @@ tss
 
 tss is a simple time series storage on top of Mongodb. It allows user to store pandas DataFrames directly into mongodb under a simple schema. Data stored in Mongodb are in native format. This is to allow other languages to directly interacting the storage to read or modify data. 
 
+tss also supports dynamodb as backend in addition to Mongodb. More information can be found at [here](doc/dynamodb.md).
+
 tss uses two collections to store the data in Mongodb:
 * series - which stores the time series meta data and chunks' meta data. The document is defined as follows:
 

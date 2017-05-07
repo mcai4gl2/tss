@@ -62,6 +62,7 @@ DATA_SCHEMA = {
     }
 }
 
+
 class Series(MongoSeries):
     def __init__(self, db, collection, scope, name, frequency, columns=[], slices=[]):
         self.db = db
@@ -88,7 +89,7 @@ class Series(MongoSeries):
     def delete(self):
         for slice in self.slices.values():
             slice.delete()
-        self.collectio.delete_item(
+        self.collection.delete_item(
             Key={'scope': self.scope, 'name': self.name}
         )
 
@@ -146,6 +147,12 @@ class SparseSlice(MongoSlice):
                    (data_from is None or str_to_time(d['timestamp']) >= data_from) and
                    (data_to is None or str_to_time(d['timestamp']) <= data_to)]
         return results
+
+    def delete(self):
+        self.collection.delete_item(Key={'series_full_name': self.series.full_name, 'slice_id': self.id})
+        del self.series.slices[self.id]
+        self.id = None
+        self.collection = None
 
 
 def time_to_str(time):

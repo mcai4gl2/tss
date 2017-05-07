@@ -76,6 +76,25 @@ def test_create_with_sparse_slices_from_df(db):
     assert_frame_equal(df, df_new, check_dtype=False)
 
 
+def test_delete_series_with_slices(db):
+    input_data = StringIO("""col1,col2,col3
+    1,2,3
+    4,5,6
+    7,8,9
+    """)
+    df = pd.read_csv(input_data, sep=",")
+    df['time'] = pd.Series([np.datetime64(datetime(2017, 3, 8)),
+                            np.datetime64(datetime(2017, 3, 9)),
+                            np.datetime64(datetime(2017, 3, 10))])
+    df.set_index(['time'], inplace=True)
+    result = utils.create_with_sparse_slices_from_df(df, 'test_scope', 'test_delete_series_with_slices', '1d',
+                                                     1, db)
+    assert result is not None
+    result.delete()
+    with pytest.raises(KeyError):
+        utils.get_series('test_scope', 'test_delete_series_with_slices', db).get()
+
+
 def test_load_series(db):
     input_data = StringIO("""col1,col2,col3
     1,2,3
