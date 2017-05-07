@@ -193,8 +193,9 @@ def test_get_data_from_series(a_series, a_slice):
     a_slice.start = datetime(2017, 3, 4)
     a_slice.add([[1, 2], [3, 4]])
     results = a_series.get()
-    expected = pd.DataFrame({'col1': [1., 3.], 'col2': [2., 4.], 'time': [datetime(2017, 3, 4), datetime(2017, 3, 5)]})
+    expected = pd.DataFrame({'col1': [1, 3], 'col2': [2, 4], 'time': [datetime(2017, 3, 4), datetime(2017, 3, 5)]})
     expected.set_index('time', inplace=True)
+    results = results.apply(pd.to_numeric, errors='ignore')
     assert_frame_equal(expected, results)
     
 
