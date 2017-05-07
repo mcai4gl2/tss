@@ -35,4 +35,3 @@ def a_slice(a_series):
 def a_sparse_slice(a_series):
     start = datetime(2017, 3, 8)
     return a_series.add_slice(start, is_sparse=True)
-
