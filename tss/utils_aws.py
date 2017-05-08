@@ -3,17 +3,19 @@ import numpy as np
 import boto3
 from boto3.dynamodb.conditions import Key
 
+from config import Config as cfg
 from models_aws import SERIES_SCHEMA, DATA_SCHEMA, Series, SparseSlice, str_to_time
-
 from . import FREQUENCIES
 
 
 def get_dynamodb(config=None):
+    if config is None:
+        config = cfg
     return boto3.resource('dynamodb',
-                          aws_access_key_id='anything',
-                          aws_secret_access_key='anything',
-                          region_name='us-west-2',
-                          endpoint_url='http://localhost:8000')
+                          aws_access_key_id=config.DYNAMO_DB_AWS_ACCESS_KEY_ID,
+                          aws_secret_access_key=config.DYNAMO_DB_AWS_SECRET_ACCESS_KEY,
+                          region_name=config.DYNAMO_DB_REGION_NAME,
+                          endpoint_url=config.DYNAMO_DB_ENDPOINT_URL)
 
 
 def create_table(db=None, config=None):

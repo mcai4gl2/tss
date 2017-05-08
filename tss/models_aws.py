@@ -72,6 +72,7 @@ class Series(MongoSeries):
         self.full_name = Series._series_full_name(scope, name)
         self.columns = columns
         self.frequency = frequency
+        self.id = self.full_name
         self.slices = {slice.id: slice for slice in slices}
         for slice in slices:
             slice.series = self
