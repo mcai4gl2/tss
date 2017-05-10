@@ -51,7 +51,10 @@ class Series(object):
                 start = data_from
             if data_to is not None and data_to < end:
                 end = data_to
-            data = s.get(start, end)
+            if start > end:
+                data = []
+            else:
+                data = s.get(start, end)
             if data == []:
                 continue
             slice_df = pd.DataFrame(data, columns=['time'] + self.columns)

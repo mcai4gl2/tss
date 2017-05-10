@@ -55,15 +55,18 @@ def _get_slices(series_full_name=None, db=None, config=None, slices=None):
         db = get_dynamodb(config)
     table = db.Table(DATA_SCHEMA['TableName'])
     count_dict = {}
+    end_dict = {}
     if series_full_name is not None:
         results = table.query(
-            ProjectionExpression="slice_id, num_of_samples",
+            ProjectionExpression="slice_id, num_of_samples, slice_end",
             KeyConditionExpression=Key('series_full_name').eq(series_full_name)
         )
         items = results['Items']
         for item in items:
             count_dict[item['slice_id']] = int(item['num_of_samples'])
+            end_dict[item['slice_id']] = str_to_time(item['slice_end'])
     return [SparseSlice(db, table, str_to_time(slice['start']),
+                        end_dict.get(slice.get('id', None), str_to_time(slice['start'])),
                         count_dict.get(slice.get('id', None), 0),
                         None, slice.get('id', None)) for slice in slices]
 
