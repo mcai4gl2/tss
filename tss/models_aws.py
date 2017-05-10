@@ -72,6 +72,7 @@ class Series(MongoSeries):
         self.full_name = Series._series_full_name(scope, name)
         self.columns = columns
         self.frequency = frequency
+        self.id = self.full_name
         self.slices = {slice.id: slice for slice in slices}
         for slice in slices:
             slice.series = self
@@ -96,11 +97,12 @@ class Series(MongoSeries):
     def add_slice(self, start):
         new_slice_data = {'series_full_name': self.full_name,
                           'slice_id': self._generate_slice_id(),
+                          'slice_end': time_to_str(start),
                           'num_of_samples': 0,
                           'slice_data': []}
         table = self.db.Table(DATA_SCHEMA['TableName'])
         table.put_item(Item=new_slice_data)
-        slice = SparseSlice(self.db, table, start, new_slice_data['num_of_samples'], self, new_slice_data['slice_id'])
+        slice = SparseSlice(self.db, table, start, start, new_slice_data['num_of_samples'], self, new_slice_data['slice_id'])
         new_slice = {'start': time_to_str(start),
                      'id': slice.id, 
                      'is_sparse': slice.is_sparse}
@@ -113,12 +115,13 @@ class Series(MongoSeries):
 
 
 class SparseSlice(MongoSlice):
-    def __init__(self, db, collection, start, num_of_samples, series=None, id=None):
+    def __init__(self, db, collection, start, end, num_of_samples, series=None, id=None):
         self.db = db
         self.collection = collection
         self.series = series
         self.id = id
         self.start = start
+        self.end_date = end
         self.num_of_samples = num_of_samples
         self.is_sparse = True
 
@@ -129,6 +132,7 @@ class SparseSlice(MongoSlice):
             return
         if not (isinstance(data.keys()[0], datetime) or isinstance(data.keys()[0], np.datetime64)):
             raise ValueError('input data key is not of type datetime')
+        new_end = max(data.keys())
         data = [{'timestamp': time_to_str(d),
                  'slice_data': self._transform_data(data[d])} for d in data.keys()]
         self.collection.update_item(Key={'series_full_name': self.series.full_name, 'slice_id': self.id},
@@ -139,6 +143,12 @@ class SparseSlice(MongoSlice):
                                     UpdateExpression="SET num_of_samples = num_of_samples + :num",
                                     ExpressionAttributeValues={':num': len(data)},
                                     ReturnValues="UPDATED_NEW")
+        if new_end > self.end:
+            self.collection.update_item(Key={'series_full_name': self.series.full_name, 'slice_id': self.id},
+                                        UpdateExpression="SET slice_end = :end",
+                                        ExpressionAttributeValues={':end': time_to_str(new_end)},
+                                        ReturnValues="UPDATED_NEW")
+            self.end_date = new_end
         self.num_of_samples += len(data)
 
     def get(self, data_from=None, data_to=None):
@@ -147,6 +157,10 @@ class SparseSlice(MongoSlice):
                    (data_from is None or str_to_time(d['timestamp']) >= data_from) and
                    (data_to is None or str_to_time(d['timestamp']) <= data_to)]
         return results
+
+    @property
+    def end(self):
+        return self.end_date
 
     def delete(self):
         self.collection.delete_item(Key={'series_full_name': self.series.full_name, 'slice_id': self.id})

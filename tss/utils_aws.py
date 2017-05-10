@@ -3,17 +3,19 @@ import numpy as np
 import boto3
 from boto3.dynamodb.conditions import Key
 
+from config import Config as cfg
 from models_aws import SERIES_SCHEMA, DATA_SCHEMA, Series, SparseSlice, str_to_time
-
 from . import FREQUENCIES
 
 
 def get_dynamodb(config=None):
+    if config is None:
+        config = cfg
     return boto3.resource('dynamodb',
-                          aws_access_key_id='anything',
-                          aws_secret_access_key='anything',
-                          region_name='us-west-2',
-                          endpoint_url='http://localhost:8000')
+                          aws_access_key_id=config.DYNAMO_DB_AWS_ACCESS_KEY_ID,
+                          aws_secret_access_key=config.DYNAMO_DB_AWS_SECRET_ACCESS_KEY,
+                          region_name=config.DYNAMO_DB_REGION_NAME,
+                          endpoint_url=config.DYNAMO_DB_ENDPOINT_URL)
 
 
 def create_table(db=None, config=None):
@@ -53,15 +55,18 @@ def _get_slices(series_full_name=None, db=None, config=None, slices=None):
         db = get_dynamodb(config)
     table = db.Table(DATA_SCHEMA['TableName'])
     count_dict = {}
+    end_dict = {}
     if series_full_name is not None:
         results = table.query(
-            ProjectionExpression="slice_id, num_of_samples",
+            ProjectionExpression="slice_id, num_of_samples, slice_end",
             KeyConditionExpression=Key('series_full_name').eq(series_full_name)
         )
         items = results['Items']
         for item in items:
             count_dict[item['slice_id']] = int(item['num_of_samples'])
+            end_dict[item['slice_id']] = str_to_time(item['slice_end'])
     return [SparseSlice(db, table, str_to_time(slice['start']),
+                        end_dict.get(slice.get('id', None), str_to_time(slice['start'])),
                         count_dict.get(slice.get('id', None), 0),
                         None, slice.get('id', None)) for slice in slices]
 
