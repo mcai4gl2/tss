@@ -97,6 +97,7 @@ class Series(MongoSeries):
     def add_slice(self, start):
         new_slice_data = {'series_full_name': self.full_name,
                           'slice_id': self._generate_slice_id(),
+                          'slice_end': time_to_str(start),
                           'num_of_samples': 0,
                           'slice_data': []}
         table = self.db.Table(DATA_SCHEMA['TableName'])
